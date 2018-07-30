@@ -31,4 +31,20 @@ contains
   end subroutine set_node_field_value_c
 
 
+  subroutine check_node_xyz_2d_c(row, col, value) bind(C, name="check_node_xyz_2d_c")
+    use arrays, only: check_node_xyz_2d
+    implicit none
+
+    integer, intent(in) :: row, col
+    real(dp), intent(out) :: value
+
+#if defined _WIN32 && defined __INTEL_COMPILER
+    call so_check_node_xyz_2d(row, col, value)
+#else
+    call check_node_xyz_2d(row, col, value)
+#endif
+
+  end subroutine check_node_xyz_2d_c
+
+
 end module arrays_c

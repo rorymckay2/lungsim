@@ -90,6 +90,7 @@ module arrays
          num_lines_2d, lines_2d, line_versn_2d, lines_in_elem, nodes_in_line, elems_2d, &
          elem_cnct_2d, elem_nodes_2d, elem_versn_2d, elem_lines_2d, elems_at_node_2d, arclength, &
          scale_factors_2d
+ public check_node_xyz_2d
 
 contains
   subroutine set_node_field_value(row, col, value)
@@ -102,6 +103,16 @@ contains
     node_field(row, col) = value
 
   end subroutine set_node_field_value
+
+  subroutine check_node_xyz_2d(row, col, value)
+    implicit none
+
+    integer, intent(in) :: row, col
+    real(dp), intent(out) :: value
+
+    value = node_xyz_2d(1, 1, row, col) 
+
+  end subroutine check_node_xyz_2d
 
 
 end module arrays
