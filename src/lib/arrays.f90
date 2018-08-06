@@ -90,7 +90,7 @@ module arrays
          num_lines_2d, lines_2d, line_versn_2d, lines_in_elem, nodes_in_line, elems_2d, &
          elem_cnct_2d, elem_nodes_2d, elem_versn_2d, elem_lines_2d, elems_at_node_2d, arclength, &
          scale_factors_2d
- public check_node_xyz_2d
+ public check_node_xyz_2d, check_node_dxyz_2d, check_elem_2d_version,check_nodes_in_elem_2d
 
 contains
   subroutine set_node_field_value(row, col, value)
@@ -104,6 +104,7 @@ contains
 
   end subroutine set_node_field_value
 
+!-----------
   subroutine check_node_xyz_2d(row, col, value)
     implicit none
 
@@ -114,5 +115,38 @@ contains
 
   end subroutine check_node_xyz_2d
 
+!-----------
+  subroutine check_elem_2d_version(row, col, value)
+    implicit none
+
+    integer, intent(in) :: row, col
+    real(dp), intent(out) :: value
+
+    value = elem_versn_2d(row, col) 
+
+  end subroutine check_elem_2d_version
+
+!-----------
+  subroutine check_node_dxyz_2d(nderiv, row, col, value)
+    implicit none
+
+    integer, intent(in) :: row, col, nderiv
+    real(dp), intent(out) :: value
+
+    value = node_xyz_2d(nderiv+1, 1, row, col) 
+
+  end subroutine check_node_dxyz_2d
+
+!-----------
+  subroutine check_nodes_in_elem_2d(row, col, value)
+    implicit none
+
+    integer, intent(in) :: row, col
+    integer, intent(out) :: value
+
+    value = nodes_2d(elem_nodes_2d(row ,col))
+
+  end subroutine check_nodes_in_elem_2d
+!-----------
 
 end module arrays
