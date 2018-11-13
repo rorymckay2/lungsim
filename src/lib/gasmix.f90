@@ -572,6 +572,7 @@ contains
        unit_field(nu_vol,nunit) = unit_field(nu_vol,nunit) + volume_change ! v(new)
        ! important: adjust the concentration to maintain mass conservation
        unit_field(nu_conc1,nunit) = unit_mass/unit_field(nu_vol,nunit)
+
     enddo
 
 !!! calculate the inflation/deflation of multi-branching acini (or other branches)
