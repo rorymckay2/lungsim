@@ -23,6 +23,7 @@ module arrays
   integer,allocatable :: node_versn_2d(:) !allocated in define_node_geometry_2d
   integer,allocatable :: elems(:) !allocated in define_1d_elements
   integer,allocatable :: lines_2d(:)
+  integer,allocatable :: parentlist(:)
   integer,allocatable :: line_versn_2d(:,:,:)
   integer,allocatable :: lines_in_elem(:,:)
   integer,allocatable :: nodes_in_line(:,:,:)
@@ -39,6 +40,8 @@ module arrays
   integer,allocatable :: elems_at_node(:,:)
   integer,allocatable :: elems_at_node_2d(:,:)
   integer,allocatable :: units(:)
+
+  real(dp),allocatable :: part_acinus_field(:,:) !for particle deposition problems
 
   real(dp),allocatable :: arclength(:,:)
   real(dp),allocatable :: elem_field(:,:) !properties of elements
@@ -78,6 +81,37 @@ module arrays
     real(dp) :: R_vein_terminal=0.90000e-05!m
   end type capillary_bf_parameters
 
+
+  type particle_parameters
+    real(dp) :: inlet_concentration(3) !for particle deposition problems
+    real(dp) :: initial_concentration !for particle deposition problems
+    integer :: num_brths_gm
+    real(dp) :: solve_tolerance = 1.0e-8_dp
+    real(dp) :: initial_volume
+    real(dp) :: diffusion_coeff, gravityx, gravityy, gravityz
+    real(dp) :: pdia, time_inspiration,time_breath_hold,time_expiration, dt_gm
+    real(dp) :: VtotTLC, totacinarLength
+    real(dp) :: tidal_volume ! tidal volume target, mm^3
+    real(dp) :: FRC 
+    real(dp) :: mu = 18.69e-6_dp
+    real(dp) :: prho                  ! ! density of particles [g/mm^3]
+    real(dp) :: lambda = 7.022e-5_dp  ! [mm] mean free path necessary
+    real(dp) :: kBoltz = 1.38e-14_dp  ! ! Boltzmann constant [J/K*1d9]=[kg*m^2/s^2/K*1d9]=[g*mm^2/s^2/K]
+    real(dp) :: Temperature = 36.0_dp+273.15_dp ! Temperature [K] from rho*R*T
+    integer :: out_itr_max = 200      ! max # (outer) iterations using GMRES solver.
+    integer :: inr_itr_max = 100      ! max # (inner) iterations using GMRES solver.
+
+    logical :: coupled, last_breath, inspiration
+    integer :: n_export
+    character(len=200) :: lung_root
+    character(len=200) :: results_location
+    character(len=20) :: study
+    character(len=20) :: subject
+    character(len=20) :: protocol
+    character(len=100) :: group_name
+    real(dp) :: diffu,LacTLC(10),RacTLC(10),VacTLC(9)
+  end type particle_parameters
+
 ! temporary, for debugging:
   real(dp) :: unit_before
 
@@ -89,8 +123,9 @@ module arrays
          elem_units_below, maxgen,capillary_bf_parameters, zero_tol,loose_tol,gasex_field, &
          num_lines_2d, lines_2d, line_versn_2d, lines_in_elem, nodes_in_line, elems_2d, &
          elem_cnct_2d, elem_nodes_2d, elem_versn_2d, elem_lines_2d, elems_at_node_2d, arclength, &
-         scale_factors_2d
+         scale_factors_2d, parentlist, particle_parameters
  public check_node_xyz_2d, check_node_dxyz_2d, check_elem_2d_version,check_nodes_in_elem_2d
+ public part_acinus_field
 
 contains
   subroutine set_node_field_value(row, col, value)

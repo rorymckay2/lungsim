@@ -14,19 +14,27 @@ module indices
   implicit none
 !parameters
   ! indices for elem_ordrs
-  integer :: num_ord=3,no_gen=1,no_hord=2,no_sord=3
+  integer :: num_ord=3,no_gen=1,no_hord=2,no_sord=3,no_type=4
+
   ! indices for node_fields
   integer :: num_nj,nj_aw_press,nj_bv_press,nj_conc1,&
-     nj_conc2
+     nj_conc2, nj_conc3,nj_mass,nj_loss,nj_loss_dif,&
+     nj_loss_sed, nj_loss_imp
   ! indices for elem_field
   integer ::num_ne,ne_radius,ne_length,ne_vol,&
       ne_resist,ne_t_resist,ne_Vdot,ne_Vdot0,ne_a_A,&
        ne_dvdt,ne_radius_in,ne_radius_in0,&
-       ne_radius_out,ne_radius_out0,ne_group,ne_Qdot
+       ne_radius_out,ne_radius_out0,ne_group,ne_Qdot,&
+       ne_mass,ne_flow,ne_part_vel
+
   ! indices for unit_field
   integer :: num_nu,nu_vol,nu_comp,nu_conc2,nu_Vdot0,nu_Vdot1, &
        nu_Vdot2,nu_dpdt,nu_pe,nu_vt,nu_air_press,nu_conc1,nu_vent,&
-       nu_vd,nu_perf,nu_blood_press
+       nu_vd,nu_perf,nu_blood_press,nu_conc3
+
+  !indices for DPI
+  integer :: nu_flow0, nu_flow1, nu_dpdt_0
+
   !indices for gas exchange field
 ! indices for gasex_field
   integer,parameter :: num_gx = 12
@@ -46,24 +54,26 @@ module indices
   !model type
   character(len=60) :: model_type
 
-public num_ord,no_gen,no_hord,no_sord
+public num_ord,no_gen,no_hord,no_sord,no_type
 
-public num_nj,nj_aw_press,nj_bv_press, nj_conc1,nj_conc2
+public num_nj,nj_aw_press,nj_bv_press, nj_conc1,nj_conc2,nj_conc3,&
+       nj_mass,nj_loss,nj_loss_dif,nj_loss_sed,nj_loss_imp
 
 public num_ne,ne_radius,ne_length,ne_vol,&
       ne_resist,ne_t_resist,ne_Vdot,ne_Vdot0,ne_a_A,&
       ne_dvdt,ne_radius_in,ne_radius_in0,ne_radius_out,&
-      ne_radius_out0,ne_group,ne_Qdot
+      ne_radius_out0,ne_group,ne_Qdot,ne_mass,ne_flow,ne_part_vel
 
 public num_nu,nu_vol,nu_comp, nu_conc2,nu_Vdot0,nu_Vdot1, &
        nu_Vdot2,nu_dpdt,nu_pe,nu_vt,nu_air_press,&
        nu_conc1,nu_vent,nu_vd,&
-       nu_perf,nu_blood_press
+       nu_perf,nu_blood_press,nu_conc3
 
 public num_gx, ng_p_alv_o2,ng_p_alv_co2,ng_p_ven_o2,ng_p_ven_co2, &
        ng_p_cap_o2, ng_p_cap_co2,ng_source_o2,ng_source_co2, &
        ng_Vc, ng_sa, ng_tt, ng_time
 
+public nu_flow0
 
 public model_type
 
@@ -119,6 +129,7 @@ contains
     num_nj=3
     nj_conc1=2
     nj_conc2=3
+    no_type=4
 
     ! indices for elem_field
     num_ne=9
@@ -129,6 +140,10 @@ contains
     ne_Vdot=5
     ne_Qdot=6
     ne_dvdt=7
+ 
+    ne_mass = 12  ! encountered in part calc, HKSep6'18
+    ne_part_vel = 14
+    ne_flow = 6
 
     ! indices for unit_field
     num_nu=7
@@ -139,6 +154,7 @@ contains
     nu_perf=5
     nu_conc1=6
     nu_conc2=7
+    nu_conc3=19
 
 
     call enter_exit(sub_name,2)
@@ -159,6 +175,11 @@ contains
     num_nj=3
     nj_aw_press=2
     nj_conc1=3
+
+!   nj_conc1=2
+    nj_conc2=3
+    nj_conc3=4
+
     ! indices for elem_field
     num_ne=9
     ne_radius=1
@@ -183,6 +204,17 @@ contains
     nu_air_press=9
     nu_conc1=10
     nu_vent=11
+
+    !added for DPI calc, HBK, Aug 2018
+    nu_flow0=3
+    nu_flow1=4
+    nu_dpdt_0 = 18
+    nj_mass=6
+    nj_loss=7
+    nj_loss_dif=8
+    nj_loss_sed=9
+    nj_loss_imp=10
+
     call enter_exit(sub_name,2)
   end subroutine gasmix_indices
 
