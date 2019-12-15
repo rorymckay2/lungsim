@@ -37,6 +37,7 @@ module geometry
   public get_local_node_f
   public set_initial_volume
   public volume_of_mesh
+  public group_elem_by_parent
 
 contains
 !
@@ -206,6 +207,7 @@ contains
     use indices
     use other_consts,only: PI
     use diagnostics, only: enter_exit
+
     implicit none
     !Parameters to become inputs
     real(dp) :: offset(3)
@@ -343,6 +345,7 @@ contains
     num_nodes=num_nodes_new
     num_elems=num_elems_new
     deallocate(np_map)
+
     call enter_exit(sub_name,2)
 
   end subroutine add_matching_mesh
@@ -357,6 +360,7 @@ contains
          num_elems,num_units,units,unit_field
     use indices,only: num_nu
     use diagnostics, only: enter_exit
+
     implicit none
 
     integer :: ne,ne0,nu
@@ -415,6 +419,7 @@ contains
          expansile,node_xyz,num_elems,num_nodes
     use indices
     use diagnostics, only: enter_exit
+
     implicit none
 
     character(len=MAX_FILENAME_LEN), intent(in) :: ELEMFILE
@@ -1404,7 +1409,11 @@ contains
     use arrays,only: num_elems_2d,elem_lines_2d,elem_cnct_2d,num_lines_2d,lines_2d, &
                      line_versn_2d,lines_in_elem,nodes_in_line,arclength,elem_nodes_2d, &
                      elem_versn_2d,scale_factors_2d
-    use mesh_functions,only: calc_scale_factors_2d
+
+! HBK COMMENTED, AUG 2018
+!   use mesh_functions,only: calc_scale_factors_2d
+
+    use mesh_utilities,only: calc_scale_factors_2d
 !!! sets up the line segment arrays for a 2d mesh
     
     character(len=4),intent(in) :: sf_option
@@ -2164,5 +2173,53 @@ contains
 ! 
 !###########################################################################################
 ! 
+
+!!!###############################################################
+
+  subroutine group_elem_by_parent(ne_parent,elemlist)
+
+    use arrays
+    use diagnostics
+
+    implicit none
+
+    integer,intent(in) :: ne_parent
+    integer :: elemlist(:)
+
+    integer :: nt_bns,ne_count,M,N,ne0
+    integer,allocatable :: ne_old(:),ne_temp(:)
+
+    elemlist = 0
+    allocate(ne_old(size(elemlist)))
+    allocate(ne_temp(size(elemlist)))
+
+    nt_bns = 1
+    ne_old(1) = ne_parent
+    ne_count = 1
+    elemlist(ne_count)=ne_parent
+    do while(NT_BNS.NE.0)
+       NUM_NODES=NT_BNS
+       NT_BNS=0
+       DO M=1,NUM_NODES
+          ne0=NE_OLD(M) !parent global element #
+          DO N=1,elem_cnct(1,0,ne0) !for each daughter branch
+             NT_BNS=NT_BNS+1
+             NE_TEMP(NT_BNS)=elem_cnct(1,N,ne0)
+          ENDDO !N
+       ENDDO !M
+       DO N=1,NT_BNS
+          NE_OLD(N)=NE_TEMP(N) !updates list of prev gen elem#s
+          ne_count=ne_count+1
+          elemlist(ne_count)=NE_TEMP(N)
+       ENDDO !N
+    ENDDO !WHILE
+
+    deallocate(ne_old)
+    deallocate(ne_temp)
+
+  end subroutine group_elem_by_parent
+
+!!!###############################################################
+
 end module geometry
 

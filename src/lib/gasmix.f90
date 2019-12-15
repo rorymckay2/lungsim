@@ -14,6 +14,9 @@ module gasmix
   use arrays,only: dp
   implicit none
   private airway_mesh_deform
+  public element_particles
+  public assemble_particles
+  public calc_mass
 
   integer,public :: inlet_node = 1
   integer,private :: NonZeros_unreduced
@@ -78,8 +81,63 @@ contains
   end subroutine assemble_gasmix
 
 !!!################################################################################
+  subroutine assemble_particles(diffusion_coeff,nonzeros_unreduced)
+
+!   use arrays,only: dp,elem_nodes,num_elems
+!   use geometry, only: volume_of_mesh
+
+    use arrays
+    use geometry
+    use diagnostics, only: enter_exit
+
+    implicit none
+
+    integer,intent(in) :: nonzeros_unreduced
+    real(dp),intent(in) :: diffusion_coeff
+
+    integer :: i,j,ncol,ne,nentry,nrow
+    real(dp) :: elem_K(2,2),elem_M(2,2),elem_R(2)
+    logical :: found
+    character(len=60) :: sub_name
+
+!!!................................................................
+
+    sub_name = 'assemble_particles'
+    call enter_exit(sub_name,1)
+
+    global_K(1:nonzeros_unreduced) = 0.0_dp
+    global_M(1:nonzeros_unreduced) = 0.0_dp
+
+    do ne=1,num_elems
+       call element_particles(ne,elem_K,elem_M,elem_R)
+       do i=1,2
+          nrow = elem_nodes(i,ne)
+          do j=1,2
+             ncol = elem_nodes(j,ne)
+             found=.false.
+             nentry = sparsity_row(nrow) ! start check at start of row
+             do while (.not.found)
+                if(ncol.eq.sparsity_col(nentry))then
+                   found = .true.
+                else
+                   nentry = nentry+1
+                endif
+             enddo
+             global_K(nentry) = global_K(nentry) + elem_K(i,j)
+             global_M(nentry) = global_M(nentry) + elem_M(i,j)
+          enddo !j
+       enddo !i
+    enddo !noelem
+
+    call enter_exit(sub_name,2)
+
+  end subroutine assemble_particles
+
+
+!!!################################################################################
 
   subroutine calc_mass(nj,nu_field,gas_mass)
+
     use arrays,only: dp,elem_cnct,elem_nodes,elem_symmetry,&
          node_field,num_elems,num_nodes,num_units,elem_field,units,unit_field
     use indices,only: ne_vol,nu_vol
@@ -166,16 +224,72 @@ contains
   end subroutine element_gasmix
 
 !!!########################################################################
+!!! original code developed by Falko Schmidt (2011). Adapted by Merryn Tawhai
+  subroutine element_particles(ne,elem_K,elem_M,elem_R) !!!,diffusion_coeff)
+
+    use other_consts
+    use arrays
+    use indices
+    use diagnostics
+
+    implicit none
+
+    type(particle_parameters) :: part_param
+    integer,intent(in) :: ne
+    real(dp) :: elem_K(2,2),elem_M(2,2),elem_R(2)
+!!!    real(dp),intent(in) :: diffusion_coeff
+
+    !Local variables
+    real(dp) :: a_A_ratio,inner_area,kappa,length,outer_area,radius
+
+    radius = elem_field(ne_radius,ne)
+    length = elem_field(ne_length,ne)
+    a_A_ratio = elem_field(ne_a_A,ne)
+    outer_area=PI*radius**2
+    inner_area=outer_area*a_A_ratio
+
+    if(elem_field(ne_flow,1).gt.0.0_dp)then ! inhalation
+
+       ! apparent diffusion acc.to. Lee2001 exhalation
+       kappa = 0.26_dp*abs(elem_field(ne_flow,ne))*2.0_dp/pi/radius 
+       kappa = kappa/6.0_dp/radius*elem_field(ne_length,ne)
+       ! using this kappa is f(l) instead f(d) - see results validation Gomes1993
+    else ! exhalation
+       kappa = 0.26_dp*abs(elem_field(ne_flow,ne))*2.0_dp/pi/radius ! apparent diffusion acc.to. Lee2001 exhalation
+    endif
+
+    elem_M(1,1) = outer_area*length/3.0_dp*DBLE(elem_symmetry(ne))
+    elem_M(1,2) = outer_area*length/3.0_dp/2.0_dp*DBLE(elem_symmetry(ne))
+    elem_M(2,1) = outer_area*length/3.0_dp/2.0_dp
+    elem_M(2,2) = outer_area*length/3.0_dp
+
+    elem_K(1,1) = (inner_area*(part_param%diffu+kappa)/length)*DBLE(elem_symmetry(ne))
+    elem_K(1,2) = (-inner_area*(part_param%diffu+kappa)/length)*DBLE(elem_symmetry(ne))
+    elem_K(2,1) = -inner_area*(part_param%diffu+kappa)/length
+    elem_K(2,2) = inner_area*(part_param%diffu+kappa)/length
+
+    elem_R = 0.0_dp
+
+  end subroutine element_particles
+
+
+!!!########################################################################
+!!!########################################################################
 
   subroutine initial_gasmix(initial_concentration,inlet_concentration)
   !DEC$ ATTRIBUTES DLLEXPORT,ALIAS:"SO_INITIAL_GASMIX" :: INITIAL_GASMIX
 
-    use arrays,only: dp,node_field,num_nodes
-    use indices,only: nj_conc1,nu_conc1
+!   use arrays,only: dp,node_field,num_nodes
+!   use indices,only: nj_conc1,nu_conc1
+
+    use arrays
+    use indices
+
     use diagnostics, only: enter_exit
     implicit none
 
-    real(dp),intent(in) :: initial_concentration,inlet_concentration
+    type(particle_parameters) :: part_param
+    real(dp),intent(in) :: initial_concentration,inlet_concentration(3)
 
     character(len=60):: sub_name
 
@@ -184,12 +298,13 @@ contains
     sub_name = 'initial_gasmix'
     call enter_exit(sub_name,1)
 
-    node_field(nj_conc1,1:num_nodes) = initial_concentration
+
+    node_field(nj_conc1,1:num_nodes) = part_param%initial_concentration
 
     ! initialise the 'ideal mass' to the mass of gas initially in model
     call calc_mass(nj_conc1,nu_conc1,ideal_mass)
 
-    node_field(nj_conc1,1) = inlet_concentration
+    node_field(nj_conc1,1) = part_param%inlet_concentration(1)
     total_volume_change = 0.0_dp ! records the volume change from FRC
 
 ! allocate the arrays for solving
@@ -324,6 +439,7 @@ contains
 
           call calc_mass(nj_conc1,nu_conc1,mass0) ! calculate model mass, for error check
           call airway_mesh_deform(dt,initial_volume,inlet_flow) ! change model size by dV
+
           call calc_mass(nj_conc1,nu_conc1,mass1) ! calculate model mass, for error check
           mass_error_deform = 100 * (mass1-mass0)/mass0 ! error from deforming
           call update_unit_mass(dt,inlet_concentration,inlet_flow) ! track gas into/out units
@@ -1134,5 +1250,7 @@ contains
     close(fh)
 
   end subroutine normalised_slope
+
+!##############################################################################
 
 end module gasmix

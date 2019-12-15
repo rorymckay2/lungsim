@@ -11,7 +11,7 @@ contains
     use arrays, only: dp
     implicit none
 
-    real(dp),intent(in) :: initial_concentration,inlet_concentration
+    real(dp),intent(in) :: initial_concentration,inlet_concentration(3)
 
 #if defined _WIN32 && defined __INTEL_COMPILER
     call so_initial_gasmix(initial_concentration, inlet_concentration)

@@ -33,6 +33,7 @@ set(INTERFACE_SRCS
   ../interface/geometry.i
   ../interface/indices.i
   ../interface/imports.i
+  ../interface/particle.i
   ../interface/pressure_resistance_flow.i
   ../interface/species_transport.i
   ../interface/ventilation.i
@@ -75,7 +76,7 @@ foreach(SWIG_INTERFACE ${INTERFACE_SRCS})
   # The Python debug libraries on windows also require the Python release libraries
   # (this appears to be the case for the libraries built with Visual Studio 14 2015),
   # so we add the release libraries here for all platforms.  This probably means that
-  # when we try and link to the debug version of the Python libraires on OSX and GNU/Linux 
+  # when we try and link to the debug version of the Python libraires on OSX and GNU/Linux
   # we will not succeed.  But as this is rarely done it hopefully won't become an issue.
   swig_link_libraries(${MODULE_NAME} ${PYTHON_LIBRARY_RELEASE} aether_c)
   set(MODULE_TARGET ${SWIG_MODULE_${MODULE_NAME}_REAL_NAME})
