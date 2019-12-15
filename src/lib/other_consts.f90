@@ -17,6 +17,8 @@ module other_consts
 
   real(dp), parameter :: PI = 3.14159265358979_dp
   real(dp), parameter :: TOLERANCE =EPSILON (EPSILON(1.0_dp))
+  real(dp), parameter :: zero_tol = 1.0e-12_dp
+  real(dp), parameter :: loose_tol = 1.0e-6_dp
 
   private
   public MAX_SUBNAME_LEN, MAX_STRING_LEN, MAX_FILENAME_LEN, PI,TOLERANCE

@@ -12,6 +12,7 @@ set(C_FORTRAN_LIB_SRCS
     geometry.f90
     indices.f90
     imports.f90
+    particle.f90
     pressure_resistance_flow.f90
     species_transport.f90
     utils.f90
@@ -28,6 +29,7 @@ set(C_C_LIB_SRCS
     geometry.c
     indices.c
     imports.c
+    particle.c
     pressure_resistance_flow.c
     species_transport.c
     utils.c
@@ -46,6 +48,7 @@ set(C_LIB_HDRS
   geometry.h
   indices.h
   imports.h
+  particle.h
   pressure_resistance_flow.h
   species_transport.h
   utils.h
